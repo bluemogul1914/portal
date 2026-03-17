@@ -258,4 +258,61 @@ router.post("/stripe/sync", async (_req, res) => {
   }
 });
 
+// ── WAVE: overdue invoices for dashboard alert panel ─────────────────────────
+router.get("/wave/overdue", async (_req, res) => {
+  const apiKey = process.env.WAVE_API_KEY;
+  if (!apiKey) return res.json({ invoices: [] });
+
+  try {
+    const bizResp = await fetch(WAVE_API_URL, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ query: `{ businesses(page:1,pageSize:5){ edges{ node{ id name } } } }` }),
+    });
+    const bizData = await bizResp.json() as any;
+    const businesses: any[] = bizData?.data?.businesses?.edges || [];
+    const targetBiz = businesses.find((b: any) => b.node.name.toLowerCase().includes("blue mogul")) || businesses[0];
+    if (!targetBiz) return res.json({ invoices: [] });
+
+    const invResp = await fetch(WAVE_API_URL, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        query: `{
+          business(id: "${targetBiz.node.id}") {
+            invoices(page:1, pageSize:20) {
+              edges {
+                node {
+                  id invoiceNumber invoiceDate status
+                  total { value }
+                  amountDue { value }
+                  customer { name }
+                }
+              }
+            }
+          }
+        }`,
+      }),
+    });
+    const invData = await invResp.json() as any;
+    const edges: any[] = invData?.data?.business?.invoices?.edges || [];
+    const overdue = edges
+      .filter((e: any) => e.node.status === "OVERDUE")
+      .map((e: any) => ({
+        id: e.node.id,
+        invoiceNumber: e.node.invoiceNumber,
+        date: e.node.invoiceDate,
+        status: e.node.status,
+        total: parseFloat(e.node.total?.value || "0"),
+        amountDue: parseFloat(e.node.amountDue?.value || "0"),
+        customer: e.node.customer?.name || "Unknown",
+      }));
+
+    res.json({ invoices: overdue });
+  } catch (e) {
+    console.error("Wave overdue error:", e);
+    res.json({ invoices: [] });
+  }
+});
+
 export default router;

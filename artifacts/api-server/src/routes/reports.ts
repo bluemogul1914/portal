@@ -191,4 +191,94 @@ router.get("/profit-loss", async (req, res) => {
   }
 });
 
+// ── INSIGHTS: powers the Wave-style dashboard charts ──────────────────────────
+router.get("/insights", async (req, res) => {
+  try {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const prevYear = currentYear - 1;
+
+    // Last 12 months of data for cash flow + P&L charts
+    const last12Start = new Date(now);
+    last12Start.setMonth(last12Start.getMonth() - 11);
+    last12Start.setDate(1);
+    const last12StartStr = last12Start.toISOString().split("T")[0];
+    const todayStr = now.toISOString().split("T")[0];
+
+    const [monthlyIncome, monthlyExpense] = await Promise.all([
+      db.select({
+        month: sql<string>`to_char(${transactionsTable.date}::date, 'Mon')`,
+        monthNum: sql<string>`to_char(${transactionsTable.date}::date, 'YYYY-MM')`,
+        total: sql<string>`coalesce(sum(${transactionsTable.amount}), 0)`,
+      }).from(transactionsTable)
+        .where(and(eq(transactionsTable.type, "income"), gte(transactionsTable.date, last12StartStr), lte(transactionsTable.date, todayStr)))
+        .groupBy(sql`to_char(${transactionsTable.date}::date, 'Mon')`, sql`to_char(${transactionsTable.date}::date, 'YYYY-MM')`)
+        .orderBy(sql`to_char(${transactionsTable.date}::date, 'YYYY-MM')`),
+
+      db.select({
+        month: sql<string>`to_char(${transactionsTable.date}::date, 'Mon')`,
+        monthNum: sql<string>`to_char(${transactionsTable.date}::date, 'YYYY-MM')`,
+        total: sql<string>`coalesce(sum(${transactionsTable.amount}), 0)`,
+      }).from(transactionsTable)
+        .where(and(eq(transactionsTable.type, "expense"), gte(transactionsTable.date, last12StartStr), lte(transactionsTable.date, todayStr)))
+        .groupBy(sql`to_char(${transactionsTable.date}::date, 'Mon')`, sql`to_char(${transactionsTable.date}::date, 'YYYY-MM')`)
+        .orderBy(sql`to_char(${transactionsTable.date}::date, 'YYYY-MM')`),
+    ]);
+
+    // Merge into a single monthly series
+    const incomeMap = new Map(monthlyIncome.map(r => [r.monthNum, { label: r.month, value: parseFloat(r.total) }]));
+    const expenseMap = new Map(monthlyExpense.map(r => [r.monthNum, { label: r.month, value: parseFloat(r.total) }]));
+    const allMonths = [...new Set([...incomeMap.keys(), ...expenseMap.keys()])].sort();
+
+    const monthlyData = allMonths.map(m => ({
+      month: incomeMap.get(m)?.label || expenseMap.get(m)?.label || m.slice(5),
+      inflow: incomeMap.get(m)?.value || 0,
+      outflow: expenseMap.get(m)?.value || 0,
+      net: (incomeMap.get(m)?.value || 0) - (expenseMap.get(m)?.value || 0),
+    }));
+
+    // Expense breakdown by category (current year)
+    const expenseCategories = await db.select({
+      category: transactionsTable.category,
+      total: sql<string>`coalesce(sum(${transactionsTable.amount}), 0)`,
+    }).from(transactionsTable)
+      .where(and(eq(transactionsTable.type, "expense"), gte(transactionsTable.date, `${currentYear}-01-01`)))
+      .groupBy(transactionsTable.category)
+      .orderBy(sql`sum(${transactionsTable.amount}) desc`)
+      .limit(6);
+
+    // Year-over-year net income
+    const [[prevIncome], [prevExpense], [currIncome], [currExpense]] = await Promise.all([
+      db.select({ total: sql<string>`coalesce(sum(${transactionsTable.amount}), 0)` }).from(transactionsTable)
+        .where(and(eq(transactionsTable.type, "income"), gte(transactionsTable.date, `${prevYear}-01-01`), lte(transactionsTable.date, `${prevYear}-12-31`))),
+      db.select({ total: sql<string>`coalesce(sum(${transactionsTable.amount}), 0)` }).from(transactionsTable)
+        .where(and(eq(transactionsTable.type, "expense"), gte(transactionsTable.date, `${prevYear}-01-01`), lte(transactionsTable.date, `${prevYear}-12-31`))),
+      db.select({ total: sql<string>`coalesce(sum(${transactionsTable.amount}), 0)` }).from(transactionsTable)
+        .where(and(eq(transactionsTable.type, "income"), gte(transactionsTable.date, `${currentYear}-01-01`), lte(transactionsTable.date, `${currentYear}-12-31`))),
+      db.select({ total: sql<string>`coalesce(sum(${transactionsTable.amount}), 0)` }).from(transactionsTable)
+        .where(and(eq(transactionsTable.type, "expense"), gte(transactionsTable.date, `${currentYear}-01-01`), lte(transactionsTable.date, `${currentYear}-12-31`))),
+    ]);
+
+    const prevIncomeVal = parseFloat(prevIncome?.total || "0");
+    const prevExpenseVal = parseFloat(prevExpense?.total || "0");
+    const currIncomeVal = parseFloat(currIncome?.total || "0");
+    const currExpenseVal = parseFloat(currExpense?.total || "0");
+
+    res.json({
+      monthlyData,
+      expenseCategories: expenseCategories.map(r => ({
+        name: r.category || "Uncategorized",
+        value: parseFloat(r.total),
+      })),
+      netIncome: {
+        previous: { year: prevYear, income: prevIncomeVal, expense: prevExpenseVal, net: prevIncomeVal - prevExpenseVal },
+        current:  { year: currentYear, income: currIncomeVal, expense: currExpenseVal, net: currIncomeVal - currExpenseVal },
+      },
+    });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "Failed to load insights" });
+  }
+});
+
 export default router;
