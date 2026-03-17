@@ -1,15 +1,30 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Blue Mogul Enterprise Bookkeeping AI API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: openai
+    description: OpenAI AI chat, image, and audio operations
+  - name: transactions
+    description: Transaction management
+  - name: budgets
+    description: Budget management
+  - name: taxes
+    description: Tax management
+  - name: reconciliation
+    description: Bank reconciliation
+  - name: reports
+    description: Financial reports
+  - name: wave
+    description: Wave Accounting integration
+  - name: stripe
+    description: Stripe Payments integration
 paths:
   /healthz:
     get:
@@ -24,6 +39,641 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /openai/conversations:
+    get:
+      operationId: listOpenaiConversations
+      tags: [openai]
+      summary: List all conversations
+      responses:
+        "200":
+          description: List of conversations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OpenaiConversation"
+    post:
+      operationId: createOpenaiConversation
+      tags: [openai]
+      summary: Create a new conversation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateOpenaiConversationBody"
+      responses:
+        "201":
+          description: Created conversation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpenaiConversation"
+  /openai/conversations/{id}:
+    get:
+      operationId: getOpenaiConversation
+      tags: [openai]
+      summary: Get conversation with messages
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Conversation with messages
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpenaiConversationWithMessages"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpenaiError"
+    delete:
+      operationId: deleteOpenaiConversation
+      tags: [openai]
+      summary: Delete a conversation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpenaiError"
+  /openai/conversations/{id}/messages:
+    get:
+      operationId: listOpenaiMessages
+      tags: [openai]
+      summary: List messages in a conversation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of messages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OpenaiMessage"
+    post:
+      operationId: sendOpenaiMessage
+      tags: [openai]
+      summary: Send a text message and receive a streaming text response
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SendOpenaiMessageBody"
+      responses:
+        "200":
+          description: SSE stream of assistant text chunks
+          content:
+            text/event-stream: {}
+
+  /transactions:
+    get:
+      operationId: listTransactions
+      tags: [transactions]
+      summary: List all transactions
+      parameters:
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [income, expense, transfer]
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: reconciled
+          in: query
+          schema:
+            type: boolean
+      responses:
+        "200":
+          description: List of transactions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Transaction"
+    post:
+      operationId: createTransaction
+      tags: [transactions]
+      summary: Create a new transaction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTransactionBody"
+      responses:
+        "201":
+          description: Created transaction
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Transaction"
+
+  /transactions/{id}:
+    get:
+      operationId: getTransaction
+      tags: [transactions]
+      summary: Get a transaction by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Transaction
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Transaction"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    put:
+      operationId: updateTransaction
+      tags: [transactions]
+      summary: Update a transaction
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateTransactionBody"
+      responses:
+        "200":
+          description: Updated transaction
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Transaction"
+    delete:
+      operationId: deleteTransaction
+      tags: [transactions]
+      summary: Delete a transaction
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /transactions/{id}/reconcile:
+    post:
+      operationId: reconcileTransaction
+      tags: [reconciliation]
+      summary: Mark a transaction as reconciled
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReconcileTransactionBody"
+      responses:
+        "200":
+          description: Reconciled transaction
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Transaction"
+
+  /budgets:
+    get:
+      operationId: listBudgets
+      tags: [budgets]
+      summary: List all budgets
+      parameters:
+        - name: year
+          in: query
+          schema:
+            type: integer
+        - name: month
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of budgets
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Budget"
+    post:
+      operationId: createBudget
+      tags: [budgets]
+      summary: Create a new budget
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateBudgetBody"
+      responses:
+        "201":
+          description: Created budget
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Budget"
+
+  /budgets/{id}:
+    put:
+      operationId: updateBudget
+      tags: [budgets]
+      summary: Update a budget
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateBudgetBody"
+      responses:
+        "200":
+          description: Updated budget
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Budget"
+    delete:
+      operationId: deleteBudget
+      tags: [budgets]
+      summary: Delete a budget
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /budgets/summary:
+    get:
+      operationId: getBudgetSummary
+      tags: [budgets]
+      summary: Get budget vs actual summary
+      parameters:
+        - name: year
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: month
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Budget summary
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BudgetSummary"
+
+  /taxes:
+    get:
+      operationId: listTaxItems
+      tags: [taxes]
+      summary: List all tax items
+      parameters:
+        - name: year
+          in: query
+          schema:
+            type: integer
+        - name: quarter
+          in: query
+          schema:
+            type: integer
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [sales_tax, estimated_quarterly, payroll, deduction]
+      responses:
+        "200":
+          description: List of tax items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TaxItem"
+    post:
+      operationId: createTaxItem
+      tags: [taxes]
+      summary: Create a new tax item
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTaxItemBody"
+      responses:
+        "201":
+          description: Created tax item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaxItem"
+
+  /taxes/{id}:
+    put:
+      operationId: updateTaxItem
+      tags: [taxes]
+      summary: Update a tax item
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateTaxItemBody"
+      responses:
+        "200":
+          description: Updated tax item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaxItem"
+    delete:
+      operationId: deleteTaxItem
+      tags: [taxes]
+      summary: Delete a tax item
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /taxes/summary:
+    get:
+      operationId: getTaxSummary
+      tags: [taxes]
+      summary: Get tax summary for year-end preparation
+      parameters:
+        - name: year
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Tax summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaxSummary"
+
+  /reports/cashflow:
+    get:
+      operationId: getCashflowReport
+      tags: [reports]
+      summary: Get cash flow report
+      parameters:
+        - name: startDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        "200":
+          description: Cash flow report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CashflowReport"
+
+  /reports/profit-loss:
+    get:
+      operationId: getProfitLossReport
+      tags: [reports]
+      summary: Get profit and loss report
+      parameters:
+        - name: startDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        "200":
+          description: P&L report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProfitLossReport"
+
+  /reports/dashboard:
+    get:
+      operationId: getDashboardStats
+      tags: [reports]
+      summary: Get dashboard summary statistics
+      responses:
+        "200":
+          description: Dashboard stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardStats"
+
+  /reconciliation/sessions:
+    get:
+      operationId: listReconciliationSessions
+      tags: [reconciliation]
+      summary: List bank reconciliation sessions
+      responses:
+        "200":
+          description: List of sessions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ReconciliationSession"
+    post:
+      operationId: createReconciliationSession
+      tags: [reconciliation]
+      summary: Create a reconciliation session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateReconciliationSessionBody"
+      responses:
+        "201":
+          description: Created session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReconciliationSession"
+
+  /reconciliation/sessions/{id}/complete:
+    post:
+      operationId: completeReconciliationSession
+      tags: [reconciliation]
+      summary: Complete a reconciliation session
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Completed session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReconciliationSession"
+
+  /wave/sync:
+    post:
+      operationId: syncWaveData
+      tags: [wave]
+      summary: Sync data from Wave Accounting
+      responses:
+        "200":
+          description: Sync result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SyncResult"
+
+  /wave/status:
+    get:
+      operationId: getWaveStatus
+      tags: [wave]
+      summary: Get Wave Accounting connection status
+      responses:
+        "200":
+          description: Status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IntegrationStatus"
+
+  /stripe/sync:
+    post:
+      operationId: syncStripeData
+      tags: [stripe]
+      summary: Sync payment data from Stripe
+      responses:
+        "200":
+          description: Sync result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SyncResult"
+
+  /stripe/status:
+    get:
+      operationId: getStripeStatus
+      tags: [stripe]
+      summary: Get Stripe connection status
+      responses:
+        "200":
+          description: Status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IntegrationStatus"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +684,655 @@ components:
       required:
         - status
 
+    OpenaiConversation:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - title
+        - createdAt
+    OpenaiMessage:
+      type: object
+      properties:
+        id:
+          type: integer
+        conversationId:
+          type: integer
+        role:
+          type: string
+        content:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - conversationId
+        - role
+        - content
+        - createdAt
+    CreateOpenaiConversationBody:
+      type: object
+      properties:
+        title:
+          type: string
+      required:
+        - title
+    SendOpenaiMessageBody:
+      type: object
+      properties:
+        content:
+          type: string
+      required:
+        - content
+    OpenaiConversationWithMessages:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        messages:
+          type: array
+          items:
+            $ref: "#/components/schemas/OpenaiMessage"
+      required:
+        - id
+        - title
+        - createdAt
+        - messages
+    OpenaiError:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    Transaction:
+      type: object
+      properties:
+        id:
+          type: integer
+        date:
+          type: string
+          format: date
+        description:
+          type: string
+        amount:
+          type: number
+        type:
+          type: string
+          enum: [income, expense, transfer]
+        category:
+          type: string
+        subcategory:
+          type: string
+          nullable: true
+        reconciled:
+          type: boolean
+        reconciledAt:
+          type: string
+          format: date-time
+          nullable: true
+        source:
+          type: string
+          enum: [manual, wave, stripe]
+        sourceId:
+          type: string
+          nullable: true
+        taxDeductible:
+          type: boolean
+        notes:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - date
+        - description
+        - amount
+        - type
+        - category
+        - reconciled
+        - source
+        - taxDeductible
+        - createdAt
+
+    CreateTransactionBody:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date
+        description:
+          type: string
+        amount:
+          type: number
+        type:
+          type: string
+          enum: [income, expense, transfer]
+        category:
+          type: string
+        subcategory:
+          type: string
+        taxDeductible:
+          type: boolean
+        notes:
+          type: string
+      required:
+        - date
+        - description
+        - amount
+        - type
+        - category
+
+    UpdateTransactionBody:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date
+        description:
+          type: string
+        amount:
+          type: number
+        type:
+          type: string
+          enum: [income, expense, transfer]
+        category:
+          type: string
+        subcategory:
+          type: string
+        taxDeductible:
+          type: boolean
+        notes:
+          type: string
+
+    ReconcileTransactionBody:
+      type: object
+      properties:
+        bankAmount:
+          type: number
+        notes:
+          type: string
+      required:
+        - bankAmount
+
+    Budget:
+      type: object
+      properties:
+        id:
+          type: integer
+        year:
+          type: integer
+        month:
+          type: integer
+          nullable: true
+        category:
+          type: string
+        amount:
+          type: number
+        notes:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - year
+        - category
+        - amount
+        - createdAt
+
+    CreateBudgetBody:
+      type: object
+      properties:
+        year:
+          type: integer
+        month:
+          type: integer
+        category:
+          type: string
+        amount:
+          type: number
+        notes:
+          type: string
+      required:
+        - year
+        - category
+        - amount
+
+    UpdateBudgetBody:
+      type: object
+      properties:
+        amount:
+          type: number
+        notes:
+          type: string
+
+    BudgetSummary:
+      type: object
+      properties:
+        category:
+          type: string
+        budgeted:
+          type: number
+        actual:
+          type: number
+        variance:
+          type: number
+        percentUsed:
+          type: number
+      required:
+        - category
+        - budgeted
+        - actual
+        - variance
+        - percentUsed
+
+    TaxItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        year:
+          type: integer
+        quarter:
+          type: integer
+          nullable: true
+        type:
+          type: string
+          enum: [sales_tax, estimated_quarterly, payroll, deduction]
+        description:
+          type: string
+        amount:
+          type: number
+        dueDate:
+          type: string
+          format: date
+          nullable: true
+        paid:
+          type: boolean
+        paidDate:
+          type: string
+          format: date
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - year
+        - type
+        - description
+        - amount
+        - paid
+        - createdAt
+
+    CreateTaxItemBody:
+      type: object
+      properties:
+        year:
+          type: integer
+        quarter:
+          type: integer
+        type:
+          type: string
+          enum: [sales_tax, estimated_quarterly, payroll, deduction]
+        description:
+          type: string
+        amount:
+          type: number
+        dueDate:
+          type: string
+          format: date
+        notes:
+          type: string
+      required:
+        - year
+        - type
+        - description
+        - amount
+
+    UpdateTaxItemBody:
+      type: object
+      properties:
+        description:
+          type: string
+        amount:
+          type: number
+        dueDate:
+          type: string
+          format: date
+        paid:
+          type: boolean
+        paidDate:
+          type: string
+          format: date
+        notes:
+          type: string
+
+    TaxSummary:
+      type: object
+      properties:
+        year:
+          type: integer
+        totalRevenue:
+          type: number
+        totalExpenses:
+          type: number
+        netIncome:
+          type: number
+        totalDeductions:
+          type: number
+        taxableIncome:
+          type: number
+        salesTaxCollected:
+          type: number
+        estimatedTaxPaid:
+          type: number
+        quarterBreakdown:
+          type: array
+          items:
+            $ref: "#/components/schemas/QuarterTaxBreakdown"
+        topDeductions:
+          type: array
+          items:
+            $ref: "#/components/schemas/DeductionItem"
+      required:
+        - year
+        - totalRevenue
+        - totalExpenses
+        - netIncome
+        - totalDeductions
+        - taxableIncome
+        - salesTaxCollected
+        - estimatedTaxPaid
+        - quarterBreakdown
+        - topDeductions
+
+    QuarterTaxBreakdown:
+      type: object
+      properties:
+        quarter:
+          type: integer
+        revenue:
+          type: number
+        expenses:
+          type: number
+        netIncome:
+          type: number
+        estimatedTaxDue:
+          type: number
+      required:
+        - quarter
+        - revenue
+        - expenses
+        - netIncome
+        - estimatedTaxDue
+
+    DeductionItem:
+      type: object
+      properties:
+        category:
+          type: string
+        amount:
+          type: number
+      required:
+        - category
+        - amount
+
+    CashflowReport:
+      type: object
+      properties:
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+        totalInflow:
+          type: number
+        totalOutflow:
+          type: number
+        netCashflow:
+          type: number
+        openingBalance:
+          type: number
+        closingBalance:
+          type: number
+        byMonth:
+          type: array
+          items:
+            $ref: "#/components/schemas/MonthlyFlow"
+        byCategory:
+          type: array
+          items:
+            $ref: "#/components/schemas/CategoryFlow"
+      required:
+        - startDate
+        - endDate
+        - totalInflow
+        - totalOutflow
+        - netCashflow
+        - openingBalance
+        - closingBalance
+        - byMonth
+        - byCategory
+
+    MonthlyFlow:
+      type: object
+      properties:
+        month:
+          type: string
+        inflow:
+          type: number
+        outflow:
+          type: number
+        net:
+          type: number
+      required:
+        - month
+        - inflow
+        - outflow
+        - net
+
+    CategoryFlow:
+      type: object
+      properties:
+        category:
+          type: string
+        amount:
+          type: number
+        type:
+          type: string
+          enum: [income, expense]
+      required:
+        - category
+        - amount
+        - type
+
+    ProfitLossReport:
+      type: object
+      properties:
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+        grossRevenue:
+          type: number
+        costOfGoodsSold:
+          type: number
+        grossProfit:
+          type: number
+        totalExpenses:
+          type: number
+        netIncome:
+          type: number
+        incomeByCategory:
+          type: array
+          items:
+            $ref: "#/components/schemas/CategoryFlow"
+        expensesByCategory:
+          type: array
+          items:
+            $ref: "#/components/schemas/CategoryFlow"
+      required:
+        - startDate
+        - endDate
+        - grossRevenue
+        - costOfGoodsSold
+        - grossProfit
+        - totalExpenses
+        - netIncome
+        - incomeByCategory
+        - expensesByCategory
+
+    DashboardStats:
+      type: object
+      properties:
+        currentMonthRevenue:
+          type: number
+        currentMonthExpenses:
+          type: number
+        currentMonthNet:
+          type: number
+        ytdRevenue:
+          type: number
+        ytdExpenses:
+          type: number
+        ytdNet:
+          type: number
+        outstandingTaxes:
+          type: number
+        unreconciledCount:
+          type: integer
+        cashBalance:
+          type: number
+        recentTransactions:
+          type: array
+          items:
+            $ref: "#/components/schemas/Transaction"
+        upcomingTaxDates:
+          type: array
+          items:
+            $ref: "#/components/schemas/TaxItem"
+      required:
+        - currentMonthRevenue
+        - currentMonthExpenses
+        - currentMonthNet
+        - ytdRevenue
+        - ytdExpenses
+        - ytdNet
+        - outstandingTaxes
+        - unreconciledCount
+        - cashBalance
+        - recentTransactions
+        - upcomingTaxDates
+
+    ReconciliationSession:
+      type: object
+      properties:
+        id:
+          type: integer
+        accountName:
+          type: string
+        statementDate:
+          type: string
+          format: date
+        statementBalance:
+          type: number
+        computedBalance:
+          type: number
+          nullable: true
+        difference:
+          type: number
+          nullable: true
+        status:
+          type: string
+          enum: [in_progress, completed]
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - accountName
+        - statementDate
+        - statementBalance
+        - status
+        - createdAt
+
+    CreateReconciliationSessionBody:
+      type: object
+      properties:
+        accountName:
+          type: string
+        statementDate:
+          type: string
+          format: date
+        statementBalance:
+          type: number
+      required:
+        - accountName
+        - statementDate
+        - statementBalance
+
+    SyncResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+        imported:
+          type: integer
+        message:
+          type: string
+      required:
+        - success
+        - imported
+        - message
+
+    IntegrationStatus:
+      type: object
+      properties:
+        connected:
+          type: boolean
+        lastSynced:
+          type: string
+          format: date-time
+          nullable: true
+        message:
+          type: string
+      required:
+        - connected
+        - message
+
+    ApiError:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error

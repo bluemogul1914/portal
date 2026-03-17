@@ -1,0 +1,19 @@
+packages:
+  "recharts": "Data visualization for financial reports and cash flow"
+  "date-fns": "Date formatting and manipulation for transactions"
+  "react-hook-form": "Form state management"
+  "@hookform/resolvers": "Zod integration for forms"
+  "zod": "Schema validation"
+  "lucide-react": "Icons for the UI"
+  "clsx": "Utility for constructing className strings"
+  "tailwind-merge": "Utility for merging tailwind classes"
+
+images:
+  - path: "artifacts/bookkeeper/public/images/logo.png"
+    description: "A premium, minimalist geometric logo mark in deep vibrant blue and electric cyan on a transparent background, suitable for a professional AI financial bookkeeping software"
+    aspect_ratio: "1:1"
+
+notes:
+  - "Assuming UI components (Button, Card, Dialog, Table, Tabs, Input, Select, Badge) exist in @/components/ui/"
+  - "Using dark mode primarily. Theme variables configured in index.css for a sleek, financial aesthetic"
+  - "Using generated hooks from @workspace/api-client-react and wrapping them for cache invalidation"
