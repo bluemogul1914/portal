@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap');
 @import "tailwindcss";
 @import "tw-animate-css";
 @plugin "@tailwindcss/typography";
@@ -6,7 +6,7 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --font-sans: 'DM Sans', sans-serif;
+  --font-sans: 'Inter', sans-serif;
   --font-display: 'Plus Jakarta Sans', sans-serif;
 
   --color-background: hsl(var(--background));
@@ -38,77 +38,91 @@
   --radius-2xl: 1.5rem;
 }
 
-/* ── DARK MODE (default) ── */
+/* ── DARK MODE — matches Blue Mogul Portal sidebar palette ── */
 :root,
 .dark {
-  --background: 230 25% 7%;
-  --foreground: 210 40% 98%;
+  /* Page background — portal's very dark navy #0d1321 */
+  --background: 222 47% 8%;
+  --foreground: 213 31% 91%;
 
-  --card: 230 25% 10%;
-  --card-foreground: 210 40% 98%;
+  /* Card surfaces — slightly lifted from background */
+  --card: 222 40% 11%;
+  --card-foreground: 213 31% 91%;
 
-  --popover: 230 25% 10%;
-  --popover-foreground: 210 40% 98%;
+  --popover: 222 40% 11%;
+  --popover-foreground: 213 31% 91%;
 
-  --primary: 217 91% 60%;
+  /* Primary — portal brand blue #2563eb */
+  --primary: 213 94% 52%;
   --primary-foreground: 0 0% 100%;
 
-  --secondary: 215 28% 17%;
-  --secondary-foreground: 210 40% 98%;
+  /* Secondary surfaces */
+  --secondary: 218 30% 18%;
+  --secondary-foreground: 213 31% 91%;
 
-  --muted: 215 28% 17%;
-  --muted-foreground: 215 20% 65%;
+  /* Muted / inactive nav text */
+  --muted: 218 30% 16%;
+  --muted-foreground: 215 20% 58%;
 
-  --accent: 189 94% 43%;
-  --accent-foreground: 0 0% 10%;
-
-  --destructive: 346 87% 60%;
-  --destructive-foreground: 0 0% 100%;
-
-  --success: 158 64% 52%;
-  --success-foreground: 0 0% 100%;
-
-  --border: 215 28% 17%;
-  --input: 215 28% 17%;
-  --ring: 217 91% 60%;
-
-  --radius: 0.75rem;
-}
-
-/* ── LIGHT MODE ── */
-.light {
-  --background: 210 40% 98%;
-  --foreground: 222 47% 11%;
-
-  --card: 0 0% 100%;
-  --card-foreground: 222 47% 11%;
-
-  --popover: 0 0% 100%;
-  --popover-foreground: 222 47% 11%;
-
-  --primary: 217 91% 50%;
-  --primary-foreground: 0 0% 100%;
-
-  --secondary: 210 40% 94%;
-  --secondary-foreground: 222 47% 11%;
-
-  --muted: 210 40% 94%;
-  --muted-foreground: 215 16% 47%;
-
-  --accent: 189 94% 38%;
+  /* Accent — portal's teal/cyan for highlights */
+  --accent: 199 89% 48%;
   --accent-foreground: 0 0% 100%;
 
-  --destructive: 346 87% 50%;
+  /* Destructive — red */
+  --destructive: 0 72% 58%;
   --destructive-foreground: 0 0% 100%;
 
-  --success: 158 64% 40%;
+  /* Success — portal's online green #22c55e */
+  --success: 142 71% 45%;
   --success-foreground: 0 0% 100%;
 
+  /* Borders — very subtle */
+  --border: 218 30% 16%;
+  --input: 218 30% 16%;
+  --ring: 213 94% 52%;
+
+  --radius: 0.5rem;
+}
+
+/* ── LIGHT MODE — matches Blue Mogul Portal content area ── */
+.light {
+  /* Clean white content area like portal */
+  --background: 210 17% 96%;
+  --foreground: 222 47% 10%;
+
+  --card: 0 0% 100%;
+  --card-foreground: 222 47% 10%;
+
+  --popover: 0 0% 100%;
+  --popover-foreground: 222 47% 10%;
+
+  /* Primary — portal brand blue */
+  --primary: 213 94% 48%;
+  --primary-foreground: 0 0% 100%;
+
+  /* Secondary */
+  --secondary: 213 27% 93%;
+  --secondary-foreground: 222 47% 10%;
+
+  --muted: 213 27% 93%;
+  --muted-foreground: 215 14% 44%;
+
+  --accent: 199 89% 42%;
+  --accent-foreground: 0 0% 100%;
+
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 0 0% 100%;
+
+  /* Success — portal online green */
+  --success: 142 71% 36%;
+  --success-foreground: 0 0% 100%;
+
+  /* Borders — light gray like portal table separators */
   --border: 214 32% 88%;
   --input: 214 32% 88%;
-  --ring: 217 91% 50%;
+  --ring: 213 94% 48%;
 
-  --radius: 0.75rem;
+  --radius: 0.5rem;
 }
 
 @layer base {
@@ -117,8 +131,8 @@
   }
 
   body {
-    @apply font-sans antialiased bg-background text-foreground selection:bg-primary/30 selection:text-primary-foreground;
-    transition: background-color 0.2s ease, color 0.2s ease;
+    @apply font-sans antialiased bg-background text-foreground selection:bg-primary/20 selection:text-primary;
+    transition: background-color 0.25s ease, color 0.25s ease;
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -128,25 +142,25 @@
 
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  @apply bg-muted-foreground/30 rounded-full hover:bg-muted-foreground/50 transition-colors;
+  @apply bg-muted-foreground/25 rounded-full hover:bg-muted-foreground/45 transition-colors;
 }
 
 /* Glass utilities */
 .glass-panel {
-  @apply bg-card/70 backdrop-blur-xl border border-border shadow-2xl;
+  @apply bg-card/80 backdrop-blur-xl border border-border shadow-lg;
 }
 
 .dark .glass-panel {
-  @apply bg-card/70 border-white/5;
+  @apply bg-card/80 border-white/[0.06];
 }
 
 .light .glass-panel {
-  @apply bg-white/80 border-black/5 shadow-lg;
+  @apply bg-white border-black/[0.06] shadow-sm;
 }
