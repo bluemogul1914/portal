@@ -32,80 +32,114 @@ router.post("/wave/sync", async (_req, res) => {
   }
 
   try {
-    const query = `
-      query {
-        businesses {
-          edges {
-            node {
-              id
-              name
-              transactions(first: 50) {
-                edges {
-                  node {
-                    id
-                    description
-                    amount
-                    date
-                    anchor { account { name } }
-                  }
-                }
+    // Step 1: Get the Blue Mogul Enterprise, LLC business ID
+    const bizQuery = `{
+      businesses(page: 1, pageSize: 10) {
+        edges {
+          node {
+            id
+            name
+          }
+        }
+      }
+    }`;
+
+    const bizResp = await fetch(WAVE_API_URL, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ query: bizQuery }),
+    });
+    const bizData = await bizResp.json() as any;
+    const businesses: any[] = bizData?.data?.businesses?.edges || [];
+
+    // Prefer Blue Mogul Enterprise, LLC; fall back to first business
+    const targetBiz =
+      businesses.find((b: any) => b.node.name.toLowerCase().includes("blue mogul")) ||
+      businesses[0];
+
+    if (!targetBiz) {
+      return res.json({ success: false, imported: 0, message: "No Wave business found" });
+    }
+
+    const bizId = targetBiz.node.id;
+    let imported = 0;
+    let page = 1;
+    let hasMore = true;
+
+    // Step 2: Page through all invoices and import them
+    while (hasMore) {
+      const invoiceQuery = `{
+        business(id: "${bizId}") {
+          invoices(page: ${page}, pageSize: 50) {
+            pageInfo { totalCount currentPage totalPages }
+            edges {
+              node {
+                id
+                invoiceNumber
+                invoiceDate
+                status
+                total { value currency { code } }
+                amountDue { value }
+                customer { name }
               }
             }
           }
         }
-      }
-    `;
+      }`;
 
-    const response = await fetch(WAVE_API_URL, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ query }),
-    });
-
-    if (!response.ok) {
-      return res.json({
-        success: false,
-        imported: 0,
-        message: `Wave API error: ${response.statusText}`,
+      const invResp = await fetch(WAVE_API_URL, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ query: invoiceQuery }),
       });
-    }
+      const invData = await invResp.json() as any;
+      const invoicesPage = invData?.data?.business?.invoices;
 
-    const data = await response.json() as any;
-    const businesses = data?.data?.businesses?.edges || [];
-    let imported = 0;
+      if (!invoicesPage) break;
 
-    for (const biz of businesses) {
-      const txns = biz.node?.transactions?.edges || [];
-      for (const edge of txns) {
-        const tx = edge.node;
+      const { totalPages, currentPage } = invoicesPage.pageInfo;
+      const edges: any[] = invoicesPage.edges || [];
+
+      for (const edge of edges) {
+        const inv = edge.node;
+        // Only import paid invoices as confirmed income
+        if (inv.status !== "PAID" && inv.status !== "PARTIAL") continue;
+
+        const amount = parseFloat(inv.total?.value || "0");
+        if (amount <= 0) continue;
+
+        const sourceId = `wave-inv-${inv.id}`;
         const existing = await db
           .select()
           .from(transactionsTable)
-          .where(eq(transactionsTable.sourceId, tx.id))
+          .where(eq(transactionsTable.sourceId, sourceId))
           .limit(1);
+
         if (existing.length === 0) {
           await db.insert(transactionsTable).values({
-            date: tx.date,
-            description: tx.description || "Wave transaction",
-            amount: String(Math.abs(tx.amount)),
-            type: tx.amount >= 0 ? "income" : "expense",
-            category: tx.anchor?.account?.name || "Uncategorized",
+            date: inv.invoiceDate || new Date().toISOString().split("T")[0],
+            description: `Invoice #${inv.invoiceNumber}${inv.customer?.name ? ` – ${inv.customer.name}` : ""}`,
+            amount: String(amount),
+            type: "income",
+            category: "Consulting Revenue",
             source: "wave",
-            sourceId: tx.id,
+            sourceId,
             taxDeductible: false,
           });
           imported++;
         }
       }
+
+      hasMore = currentPage < totalPages;
+      page++;
     }
 
     res.json({
       success: true,
       imported,
-      message: `Successfully synced ${imported} new transactions from Wave`,
+      message: imported > 0
+        ? `Successfully imported ${imported} paid invoices from Wave (${targetBiz.node.name})`
+        : "All Wave invoices are already up to date",
     });
   } catch (e) {
     console.error("Wave sync error:", e);
