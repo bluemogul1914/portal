@@ -38,38 +38,75 @@
   --radius-2xl: 1.5rem;
 }
 
-:root {
-  /* Defaulting to a stunning dark financial theme globally */
+/* ── DARK MODE (default) ── */
+:root,
+.dark {
   --background: 230 25% 7%;
   --foreground: 210 40% 98%;
-  
+
   --card: 230 25% 10%;
   --card-foreground: 210 40% 98%;
-  
+
   --popover: 230 25% 10%;
   --popover-foreground: 210 40% 98%;
-  
+
   --primary: 217 91% 60%;
   --primary-foreground: 0 0% 100%;
-  
+
   --secondary: 215 28% 17%;
   --secondary-foreground: 210 40% 98%;
-  
+
   --muted: 215 28% 17%;
   --muted-foreground: 215 20% 65%;
-  
+
   --accent: 189 94% 43%;
   --accent-foreground: 0 0% 10%;
-  
+
   --destructive: 346 87% 60%;
   --destructive-foreground: 0 0% 100%;
 
   --success: 158 64% 52%;
   --success-foreground: 0 0% 100%;
-  
+
   --border: 215 28% 17%;
   --input: 215 28% 17%;
   --ring: 217 91% 60%;
+
+  --radius: 0.75rem;
+}
+
+/* ── LIGHT MODE ── */
+.light {
+  --background: 210 40% 98%;
+  --foreground: 222 47% 11%;
+
+  --card: 0 0% 100%;
+  --card-foreground: 222 47% 11%;
+
+  --popover: 0 0% 100%;
+  --popover-foreground: 222 47% 11%;
+
+  --primary: 217 91% 50%;
+  --primary-foreground: 0 0% 100%;
+
+  --secondary: 210 40% 94%;
+  --secondary-foreground: 222 47% 11%;
+
+  --muted: 210 40% 94%;
+  --muted-foreground: 215 16% 47%;
+
+  --accent: 189 94% 38%;
+  --accent-foreground: 0 0% 100%;
+
+  --destructive: 346 87% 50%;
+  --destructive-foreground: 0 0% 100%;
+
+  --success: 158 64% 40%;
+  --success-foreground: 0 0% 100%;
+
+  --border: 214 32% 88%;
+  --input: 214 32% 88%;
+  --ring: 217 91% 50%;
 
   --radius: 0.75rem;
 }
@@ -81,8 +118,7 @@
 
   body {
     @apply font-sans antialiased bg-background text-foreground selection:bg-primary/30 selection:text-primary-foreground;
-    /* Adding subtle grain overlay for a premium texture */
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.03'/%3E%3C/svg%3E");
+    transition: background-color 0.2s ease, color 0.2s ease;
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -90,7 +126,7 @@
   }
 }
 
-/* Custom Scrollbar for a polished look */
+/* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -102,7 +138,15 @@
   @apply bg-muted-foreground/30 rounded-full hover:bg-muted-foreground/50 transition-colors;
 }
 
-/* Smooth glassmorphism utilities */
+/* Glass utilities */
 .glass-panel {
-  @apply bg-card/70 backdrop-blur-xl border border-white/5 shadow-2xl;
+  @apply bg-card/70 backdrop-blur-xl border border-border shadow-2xl;
+}
+
+.dark .glass-panel {
+  @apply bg-card/70 border-white/5;
+}
+
+.light .glass-panel {
+  @apply bg-white/80 border-black/5 shadow-lg;
 }
