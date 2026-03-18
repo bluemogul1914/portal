@@ -2,7 +2,6 @@ import { Router, type IRouter } from "express";
 import { db } from "@workspace/db";
 import { transactionsTable } from "@workspace/db/schema";
 import { eq } from "drizzle-orm";
-import { ReplitConnectors } from "@replit/connectors-sdk";
 
 const router: IRouter = Router();
 
@@ -147,110 +146,6 @@ router.post("/wave/sync", async (_req, res) => {
   }
 });
 
-// ── STRIPE ────────────────────────────────────────────────────────────────────
-// Uses STRIPE_KEY env var (sk_live_... or sk_test_...) for direct Stripe API access
-
-function getStripeKey(): string | null {
-  return process.env.STRIPE_KEY || process.env.STRIPE_SECRET_KEY || null;
-}
-
-async function stripeGet(path: string): Promise<Response> {
-  const key = getStripeKey();
-  if (!key) throw new Error("Stripe secret key not configured");
-  return fetch(`https://api.stripe.com${path}`, {
-    method: "GET",
-    headers: {
-      Authorization: `Bearer ${key}`,
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-  });
-}
-
-router.get("/stripe/status", async (_req, res) => {
-  const key = getStripeKey();
-  if (!key) {
-    return res.json({ connected: false, lastSynced: null, message: "Stripe secret key not configured" });
-  }
-  try {
-    const response = await stripeGet("/v1/balance");
-    const data = await response.json() as any;
-
-    if (response.ok && data?.object === "balance") {
-      return res.json({ connected: true, lastSynced: null, message: "Stripe connected" });
-    }
-    if (data?.error?.type === "authentication_error") {
-      return res.json({ connected: false, lastSynced: null, message: "Stripe authentication failed — check your API key" });
-    }
-    res.json({ connected: true, lastSynced: null, message: "Stripe connected" });
-  } catch (e) {
-    console.error("Stripe status error:", e);
-    res.json({ connected: false, lastSynced: null, message: "Could not reach Stripe API" });
-  }
-});
-
-router.post("/stripe/sync", async (_req, res) => {
-  const key = getStripeKey();
-  if (!key) {
-    return res.json({ success: false, imported: 0, message: "Stripe secret key not configured. Add STRIPE_KEY to environment secrets." });
-  }
-  try {
-    const response = await stripeGet("/v1/charges?limit=100&expand[]=data.customer");
-
-    if (!response.ok) {
-      const data = await response.json() as any;
-      console.error("Stripe sync error:", data);
-      return res.json({ success: false, imported: 0, message: data?.error?.message || "Stripe API error" });
-    }
-
-    const data = await response.json() as any;
-    const charges: any[] = data.data || [];
-    let imported = 0;
-
-    for (const charge of charges) {
-      if (charge.status !== "succeeded") continue;
-
-      const sourceId = charge.id;
-      const existing = await db
-        .select()
-        .from(transactionsTable)
-        .where(eq(transactionsTable.sourceId, sourceId))
-        .limit(1);
-
-      if (existing.length === 0) {
-        const date = new Date(charge.created * 1000).toISOString().split("T")[0];
-        const customerName =
-          (typeof charge.customer === "object" ? charge.customer?.name : null) ||
-          charge.billing_details?.name ||
-          "Customer";
-        const description = charge.description || `Stripe payment from ${customerName}`;
-        const amountDollars = String(charge.amount / 100);
-
-        await db.insert(transactionsTable).values({
-          date,
-          description,
-          amount: amountDollars,
-          type: "income",
-          category: "Stripe Revenue",
-          source: "stripe",
-          sourceId,
-          taxDeductible: false,
-        });
-        imported++;
-      }
-    }
-
-    res.json({
-      success: true,
-      imported,
-      message: imported > 0
-        ? `Successfully imported ${imported} new Stripe payment${imported === 1 ? "" : "s"}`
-        : "All Stripe payments are already up to date",
-    });
-  } catch (e) {
-    console.error("Stripe sync error:", e);
-    res.json({ success: false, imported: 0, message: "Failed to sync Stripe data" });
-  }
-});
 
 // ── WAVE: overdue invoices for dashboard alert panel ─────────────────────────
 router.get("/wave/overdue", async (_req, res) => {

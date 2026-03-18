@@ -1,5 +1,5 @@
 import { useDashboardStats, useInsights, useWaveOverdue } from "@/hooks/use-reports";
-import { useWaveStatus, useStripeStatus } from "@/hooks/use-integrations";
+import { useWaveStatus } from "@/hooks/use-integrations";
 import { Layout } from "@/components/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -76,7 +76,6 @@ export default function Dashboard() {
   const { data: insights, isLoading: insightsLoading } = useInsights();
   const { data: overdueData, isLoading: overdueLoading } = useWaveOverdue();
   const { data: waveStatus } = useWaveStatus();
-  const { data: stripeStatus } = useStripeStatus();
 
   const isLoading = statsLoading || insightsLoading;
 
@@ -213,30 +212,6 @@ export default function Dashboard() {
                   </div>
                 </div>
 
-                {/* Stripe */}
-                <div className="rounded-md border border-border p-3">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <div className="w-5 h-5 rounded bg-[#635BFF] flex items-center justify-center">
-                        <span className="text-[9px] font-bold text-white">S</span>
-                      </div>
-                      <span className="text-xs font-semibold text-foreground">Stripe Payments</span>
-                    </div>
-                    {stripeStatus?.connected ? (
-                      <Badge variant="outline" className="text-[10px] h-5 bg-success/10 text-success border-success/20">Connected</Badge>
-                    ) : (
-                      <Badge variant="outline" className="text-[10px] h-5 bg-muted text-muted-foreground">Not connected</Badge>
-                    )}
-                  </div>
-                  <div className="flex items-center justify-between text-[11px]">
-                    <span className="text-muted-foreground">Sandbox mode</span>
-                    <Link href="/integrations">
-                      <button className="text-primary text-[10px] hover:underline flex items-center gap-0.5">
-                        Sync <RefreshCw className="w-2.5 h-2.5" />
-                      </button>
-                    </Link>
-                  </div>
-                </div>
 
                 {/* Blue Mogul Portal */}
                 <div className="rounded-md border border-primary/20 bg-primary/5 p-3">

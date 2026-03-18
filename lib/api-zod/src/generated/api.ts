@@ -596,21 +596,3 @@ export const GetWaveStatusResponse = zod.object({
   lastSynced: zod.date().nullish(),
   message: zod.string(),
 });
-
-/**
- * @summary Sync payment data from Stripe
- */
-export const SyncStripeDataResponse = zod.object({
-  success: zod.boolean(),
-  imported: zod.number(),
-  message: zod.string(),
-});
-
-/**
- * @summary Get Stripe connection status
- */
-export const GetStripeStatusResponse = zod.object({
-  connected: zod.boolean(),
-  lastSynced: zod.date().nullish(),
-  message: zod.string(),
-});

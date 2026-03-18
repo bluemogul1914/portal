@@ -1,14 +1,14 @@
 import { useState, useCallback } from "react";
 import { Layout } from "@/components/Layout";
-import { useWaveStatus, useStripeStatus, useSyncWave, useSyncStripe } from "@/hooks/use-integrations";
+import { useWaveStatus, useSyncWave } from "@/hooks/use-integrations";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { usePlaidLink } from "react-plaid-link";
 import {
-  RefreshCw, CheckCircle2, XCircle, ExternalLink, Info, Key,
-  Zap, Copy, Check, Landmark, CreditCard, Building2, AlertTriangle,
+  RefreshCw, CheckCircle2, XCircle, ExternalLink, Key,
+  Zap, Copy, Check, Landmark, Building2, AlertTriangle,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -56,9 +56,7 @@ function MethodBadge({ method }: { method: string }) {
 
 export default function Integrations() {
   const { data: waveStatus, isLoading: waveLoading } = useWaveStatus();
-  const { data: stripeStatus, isLoading: stripeLoading } = useStripeStatus();
   const waveSync = useSyncWave();
-  const stripeSync = useSyncStripe();
   const { toast } = useToast();
   const qc = useQueryClient();
 
@@ -390,39 +388,6 @@ export default function Integrations() {
               </CardContent>
             </Card>
 
-            {/* Stripe */}
-            <Card className="glass-panel overflow-hidden">
-              <div className="h-1.5 bg-gradient-to-r from-[#635BFF] to-[#8C85FF]" />
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center justify-between text-base">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-7 h-7 rounded-lg bg-[#635BFF]/10 border border-[#635BFF]/20 flex items-center justify-center">
-                      <CreditCard className="w-4 h-4 text-[#635BFF]" />
-                    </div>
-                    Stripe Payments
-                  </div>
-                  {stripeLoading ? null : <StatusBadge connected={!!stripeStatus?.connected} />}
-                </CardTitle>
-                <CardDescription className="text-xs">Auto-import customer payments and refunds.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <p className="text-xs text-muted-foreground">{stripeStatus?.message || "Not connected"}</p>
-                <Button
-                  onClick={() => stripeSync.mutate()}
-                  disabled={stripeSync.isPending || !stripeStatus?.connected}
-                  size="sm"
-                  className="w-full h-8 text-xs bg-[#635BFF] hover:bg-[#524be0] text-white gap-1.5"
-                >
-                  {stripeSync.isPending ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
-                  Sync Payments
-                </Button>
-                {stripeSync.data && (
-                  <p className={`text-xs text-center ${stripeSync.data.success ? "text-success" : "text-destructive"}`}>
-                    {stripeSync.data.message}
-                  </p>
-                )}
-              </CardContent>
-            </Card>
           </div>
         </section>
 
