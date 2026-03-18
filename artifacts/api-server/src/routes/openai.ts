@@ -213,9 +213,10 @@ router.post("/conversations/:id/messages", async (req, res) => {
 
     let fullResponse = "";
 
+    const model = process.env.AI_MODEL || "gpt-4o";
     const stream = await openai.chat.completions.create({
-      model: "gpt-5.2",
-      max_completion_tokens: 8192,
+      model,
+      max_tokens: 8192,
       messages: chatMessages,
       stream: true,
     });
