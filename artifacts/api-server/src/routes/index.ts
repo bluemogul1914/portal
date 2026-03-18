@@ -7,6 +7,7 @@ import reportsRouter from "./reports";
 import reconciliationRouter from "./reconciliation";
 import openaiRouter from "./openai";
 import integrationsRouter from "./integrations";
+import vendorsRouter from "./vendors";
 
 const router: IRouter = Router();
 
@@ -18,5 +19,6 @@ router.use("/reports", reportsRouter);
 router.use("/reconciliation", reconciliationRouter);
 router.use("/openai", openaiRouter);
 router.use(integrationsRouter);
+router.use(vendorsRouter);
 
 export default router;

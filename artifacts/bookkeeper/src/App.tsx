@@ -13,6 +13,8 @@ import Reconciliation from "@/pages/Reconciliation";
 import Reports from "@/pages/Reports";
 import Chat from "@/pages/Chat";
 import Integrations from "@/pages/Integrations";
+import Vendors from "@/pages/Vendors";
+import Purchases from "@/pages/Purchases";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -32,6 +34,8 @@ function Router() {
       <Route path="/taxes" component={Taxes} />
       <Route path="/reconciliation" component={Reconciliation} />
       <Route path="/reports" component={Reports} />
+      <Route path="/vendors" component={Vendors} />
+      <Route path="/purchases" component={Purchases} />
       <Route path="/chat" component={Chat} />
       <Route path="/integrations" component={Integrations} />
       <Route component={NotFound} />

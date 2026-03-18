@@ -14,6 +14,8 @@ import {
   Sun,
   Moon,
   Activity,
+  Building2,
+  ShoppingCart,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -30,6 +32,8 @@ export function Layout({ children }: LayoutProps) {
   const mainNav = [
     { name: "Dashboard", href: "/", icon: LayoutDashboard },
     { name: "Transactions", href: "/transactions", icon: Receipt },
+    { name: "Purchases", href: "/purchases", icon: ShoppingCart },
+    { name: "Vendors", href: "/vendors", icon: Building2 },
     { name: "Budgets", href: "/budgets", icon: Wallet },
     { name: "Taxes", href: "/taxes", icon: Landmark },
     { name: "Reconciliation", href: "/reconciliation", icon: FileText },
