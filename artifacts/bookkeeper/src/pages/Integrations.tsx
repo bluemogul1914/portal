@@ -214,12 +214,15 @@ export default function Integrations() {
                     <span className="col-span-6">Used in n8n workflow</span>
                   </div>
                   {[
-                    { method: "GET",  path: "/api/n8n/clients",     workflow: "Monthly Invoicing → Get Active Clients" },
-                    { method: "GET",  path: "/api/n8n/overdue",     workflow: "Weekly AR Check → Get Overdue Invoices" },
-                    { method: "GET",  path: "/api/n8n/pnl",         workflow: "Weekly P&L Report → Build P&L Report" },
-                    { method: "POST", path: "/api/n8n/log",         workflow: "Weekly AR Check → Log to Blue Mogul Portal" },
-                    { method: "POST", path: "/api/n8n/transaction", workflow: "Create transaction from any workflow" },
-                    { method: "GET",  path: "/api/n8n/vendors",     workflow: "Get vendors / suppliers" },
+                    { method: "GET",  path: "/api/n8n/summary",       workflow: "YTD income, expenses, net profit & margin" },
+                    { method: "GET",  path: "/api/n8n/cashflow",       workflow: "Monthly cash flow Jan–current month" },
+                    { method: "GET",  path: "/api/n8n/invoices",       workflow: "All Wave invoices with status (?status=OVERDUE)" },
+                    { method: "GET",  path: "/api/n8n/taxes",          workflow: "TX 8.25% sales tax + SE tax on net profit" },
+                    { method: "GET",  path: "/api/n8n/reconciliation", workflow: "Unreconciled transactions" },
+                    { method: "GET",  path: "/api/n8n/overdue",        workflow: "Weekly AR Check → Get Overdue Invoices" },
+                    { method: "GET",  path: "/api/n8n/clients",        workflow: "Monthly Invoicing → Get Active Clients" },
+                    { method: "POST", path: "/api/n8n/log",            workflow: "Weekly AR Check → Log to Blue Mogul Portal" },
+                    { method: "POST", path: "/api/n8n/transaction",    workflow: "Create transaction from any workflow" },
                   ].map(ep => (
                     <div key={ep.path} className="grid grid-cols-12 gap-2 px-3 py-2 border-b border-border/40 last:border-0 items-center hover:bg-muted/20 transition-colors">
                       <div className="col-span-1">
