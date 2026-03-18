@@ -10,7 +10,7 @@ COPY lib/ ./lib/
 COPY artifacts/api-server/ ./artifacts/api-server/
 COPY artifacts/bookkeeper/ ./artifacts/bookkeeper/
 
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --no-frozen-lockfile
 
 RUN pnpm --filter @workspace/bookkeeper run build
 
