@@ -8,6 +8,8 @@ import reconciliationRouter from "./reconciliation";
 import openaiRouter from "./openai";
 import integrationsRouter from "./integrations";
 import vendorsRouter from "./vendors";
+import n8nRouter from "./n8n";
+import plaidRouter from "./plaid";
 
 const router: IRouter = Router();
 
@@ -20,5 +22,7 @@ router.use("/reconciliation", reconciliationRouter);
 router.use("/openai", openaiRouter);
 router.use(integrationsRouter);
 router.use(vendorsRouter);
+router.use(n8nRouter);
+router.use(plaidRouter);
 
 export default router;
