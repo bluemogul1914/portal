@@ -147,67 +147,59 @@ router.post("/wave/sync", async (_req, res) => {
   }
 });
 
-// ── STRIPE (via Replit Connectors SDK) ───────────────────────────────────────
+// ── STRIPE ────────────────────────────────────────────────────────────────────
+// Uses STRIPE_KEY env var (sk_live_... or sk_test_...) for direct Stripe API access
+
+function getStripeKey(): string | null {
+  return process.env.STRIPE_KEY || process.env.STRIPE_SECRET_KEY || null;
+}
+
+async function stripeGet(path: string): Promise<Response> {
+  const key = getStripeKey();
+  if (!key) throw new Error("Stripe secret key not configured");
+  return fetch(`https://api.stripe.com${path}`, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${key}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+  });
+}
 
 router.get("/stripe/status", async (_req, res) => {
+  const key = getStripeKey();
+  if (!key) {
+    return res.json({ connected: false, lastSynced: null, message: "Stripe secret key not configured" });
+  }
   try {
-    const connectors = new ReplitConnectors();
-    // Probe connectivity — any response from Stripe's API (even 404) means we're authenticated
-    const response = await connectors.proxy("stripe", "/v1/charges?limit=1", { method: "GET" });
+    const response = await stripeGet("/v1/balance");
     const data = await response.json() as any;
 
-    // 200 with data array = connected and has charges
-    if (response.ok && Array.isArray(data?.data)) {
-      return res.json({
-        connected: true,
-        lastSynced: null,
-        message: "Stripe connected via Replit integration",
-      });
+    if (response.ok && data?.object === "balance") {
+      return res.json({ connected: true, lastSynced: null, message: "Stripe connected" });
     }
-
-    // Stripe returned a structured error message = we're authenticated, Stripe responded
-    // "Unrecognized request URL" in sandbox = connected, sandbox mode
-    if (data?.error?.type === "invalid_request_error") {
-      return res.json({
-        connected: true,
-        lastSynced: null,
-        message: "Stripe connected (sandbox mode)",
-      });
+    if (data?.error?.type === "authentication_error") {
+      return res.json({ connected: false, lastSynced: null, message: "Stripe authentication failed — check your API key" });
     }
-
-    // Auth errors = not connected
-    if (data?.error?.type === "authentication_error" || data?.error?.code === "api_key_expired") {
-      return res.json({
-        connected: false,
-        lastSynced: null,
-        message: "Stripe authentication failed",
-      });
-    }
-
-    // Any other Stripe response = connected
     res.json({ connected: true, lastSynced: null, message: "Stripe connected" });
   } catch (e) {
     console.error("Stripe status error:", e);
-    res.json({ connected: false, lastSynced: null, message: "Stripe connector not reachable" });
+    res.json({ connected: false, lastSynced: null, message: "Could not reach Stripe API" });
   }
 });
 
 router.post("/stripe/sync", async (_req, res) => {
+  const key = getStripeKey();
+  if (!key) {
+    return res.json({ success: false, imported: 0, message: "Stripe secret key not configured. Add STRIPE_KEY to environment secrets." });
+  }
   try {
-    const connectors = new ReplitConnectors();
-
-    const response = await connectors.proxy("stripe", "/v1/charges?limit=50", {
-      method: "GET",
-    });
+    const response = await stripeGet("/v1/charges?limit=100&expand[]=data.customer");
 
     if (!response.ok) {
-      const text = await response.text();
-      console.error("Stripe sync error response:", text);
-      return res.json({
-        success: false,
-        imported: 0,
-        message: `Stripe API error: ${response.statusText}`,
-      });
+      const data = await response.json() as any;
+      console.error("Stripe sync error:", data);
+      return res.json({ success: false, imported: 0, message: data?.error?.message || "Stripe API error" });
     }
 
     const data = await response.json() as any;
@@ -217,17 +209,20 @@ router.post("/stripe/sync", async (_req, res) => {
     for (const charge of charges) {
       if (charge.status !== "succeeded") continue;
 
+      const sourceId = charge.id;
       const existing = await db
         .select()
         .from(transactionsTable)
-        .where(eq(transactionsTable.sourceId, charge.id))
+        .where(eq(transactionsTable.sourceId, sourceId))
         .limit(1);
 
       if (existing.length === 0) {
         const date = new Date(charge.created * 1000).toISOString().split("T")[0];
-        const description =
-          charge.description ||
-          `Stripe payment from ${charge.billing_details?.name || "customer"}`;
+        const customerName =
+          (typeof charge.customer === "object" ? charge.customer?.name : null) ||
+          charge.billing_details?.name ||
+          "Customer";
+        const description = charge.description || `Stripe payment from ${customerName}`;
         const amountDollars = String(charge.amount / 100);
 
         await db.insert(transactionsTable).values({
@@ -237,7 +232,7 @@ router.post("/stripe/sync", async (_req, res) => {
           type: "income",
           category: "Stripe Revenue",
           source: "stripe",
-          sourceId: charge.id,
+          sourceId,
           taxDeductible: false,
         });
         imported++;
@@ -247,10 +242,9 @@ router.post("/stripe/sync", async (_req, res) => {
     res.json({
       success: true,
       imported,
-      message:
-        imported > 0
-          ? `Successfully imported ${imported} new payments from Stripe`
-          : "All Stripe payments are already up to date",
+      message: imported > 0
+        ? `Successfully imported ${imported} new Stripe payment${imported === 1 ? "" : "s"}`
+        : "All Stripe payments are already up to date",
     });
   } catch (e) {
     console.error("Stripe sync error:", e);
