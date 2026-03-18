@@ -1,35 +1,35 @@
 modules = ["nodejs-24", "postgresql-16"]
 
-[[artifacts]]
-id = "artifacts/api-server"
+  [[artifacts]]
+  id = "artifacts/api-server"
 
-[[artifacts]]
-id = "artifacts/mockup-sandbox"
+  [[artifacts]]
+  id = "artifacts/mockup-sandbox"
 
-[deployment]
-router = "application"
-deploymentTarget = "autoscale"
+  [deployment]
+  router = "application"
+  deploymentTarget = "autoscale"
 
-[deployment.postBuild]
-args = ["pnpm", "store", "prune"]
-env = { "CI" = "true" }
+  [deployment.postBuild]
+  args = ["pnpm", "store", "prune"]
+  env = { "CI" = "true" }
 
-[workflows]
-runButton = "Project"
+  [workflows]
+  runButton = "Project"
 
-[agent]
-stack = "PNPM_WORKSPACE"
-expertMode = true
-integrations = ["stripe:1.0.0"]
+  [agent]
+  stack = "PNPM_WORKSPACE"
+  expertMode = true
 
-[postMerge]
-path = "scripts/post-merge.sh"
-timeoutMs = 20000
+  [postMerge]
+  path = "scripts/post-merge.sh"
+  timeoutMs = 20000
 
-[nix]
-channel = "stable-25_05"
+  [nix]
+  channel = "stable-25_05"
 
-[userenv]
+  [userenv]
 
-[userenv.shared]
-BOOKKEEPER_API_KEY = "8d0db2f518b54122974cbafb99e72f5f56c785065c0a49d99f1dc71987abbe3c"
+  [userenv.shared]
+  BOOKKEEPER_API_KEY = "8d0db2f518b54122974cbafb99e72f5f56c785065c0a49d99f1dc71987abbe3c"
+  
