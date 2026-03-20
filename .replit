@@ -19,7 +19,7 @@ modules = ["nodejs-24", "postgresql-16"]
 
   [agent]
   stack = "PNPM_WORKSPACE"
-expertMode = true
+  expertMode = true
 
   [postMerge]
   path = "scripts/post-merge.sh"
@@ -32,5 +32,4 @@ expertMode = true
 
   [userenv.shared]
   BOOKKEEPER_API_KEY = "8d0db2f518b54122974cbafb99e72f5f56c785065c0a49d99f1dc71987abbe3c"
-GITHUB_PAT = "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"
   
