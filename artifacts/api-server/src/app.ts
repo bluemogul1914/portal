@@ -15,7 +15,8 @@ app.use("/api", router);
 const frontendPath = path.join(process.cwd(), "artifacts/bookkeeper/dist/public");
 if (process.env.NODE_ENV === "production" && fs.existsSync(frontendPath)) {
   app.use(express.static(frontendPath));
-  app.get("*", (_req, res) => {
+  app.use((req, res, next) => {
+    if (req.method !== "GET") return next();
     res.sendFile(path.join(frontendPath, "index.html"));
   });
 }
